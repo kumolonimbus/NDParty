@@ -1,6 +1,7 @@
 
 """
 test version of conversation bot for NDP party virtual 2020
+to enter venv: source env/bin/activate
 to begin: python3 ndpBot_v1.py
 send /start to initiate the conversation
 to leave venv: deactivate
@@ -21,7 +22,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 logger = logging.getLogger(__name__)
 
-AGREE, NAME, GENDER, AGE = range(4)
+RULES, INTRO, NAME, GENDER, AGE = range(3)
 
 """
 the functions defined below are callback functions passed to Handlers. Arguments for
@@ -30,49 +31,58 @@ different classes of Handler can be found in docs.
 some_fun(update, context) is the standard callback signature for the context based API
 """
 
-rules =     """
-    We want to keep our Telegram page an open chat, but we are also a “family-friendly” page,
-    so please keep comments and wall posts clean. \n
-
-    We want you to tell us what’s on your mind or provide a platform for likeminded individuals
-    to connect through their interests, but if it falls into any of the categories below,
-    we want to let you know beforehand that we will have to remove it:\n
-
-    1. We do not allow graphic, obscene, explicit or racial comments or
-    submissions nor do we allow comments that are abusive, hateful or intended
-    to defame anyone or any organization. \n
-
-    2. We do not allow third-party solicitations or advertisements.
-    This includes promotion or endorsement of any financial, commercial or non-governmental agency.
-    Similarly, we do not allow attempts to defame or defraud any financial,
-    commercial or non-governmental agency. \n
-
-    3. We do not allow comments that support or encourage illegal activity. \n
-
-    Let’s make this a safe space for everyone! :D
-    """
-
-
 def start(update, context):
-    reply_keyboard = [['Yes', 'No']]
 
-    #sends starting message
-    update.message.reply_text(
-        ('Hello!\n' + rules),
-        reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
+    #sends starting message and request password
+    update.message.reply_text("""
+    Welcome to Better To(gather)'s party-matching bot!
+    We'll match you with other attendees with similar hobbies or interests. Exciting hor? \n
+
+    You shall not pass...without a password! Please enter:
+    """
+    )
 
     #changes state of conv_handler
-    return AGREE
+    return RULES
 
 
-def agree(update, context):
+def rules(update, context):
     user = update.message.from_user
-    logger.info("Agree?: %s", update.message.text)
+    logger.info("User %s 's password: %s", user.first_name, update.message.text)
 
-    #get name
-    update.message.reply_text('Great! Your name please')
+    #set reply_keyboard
+    reply_keyboard = [["OK, can"]]
 
-    #changes state of conv_handler
+    update.message.reply_text(
+        """
+        OK very nice. Hello!
+        This is an open chat, but we are also a “family-friendly” page, so please keep comments and wall posts clean.\n
+
+        We want you to tell us what’s on your mind and provide a platform for likeminded individuals to connect through their interests,
+        but please note that content falling into any of the categories below will be removed: \n
+
+        1. We do not allow graphic, obscene, explicit or racial comments or submissions
+        nor do we allow comments that are abusive, hateful or intended to defame anyone or any organization. \n
+
+        2.We do not allow third-party solicitations or advertisements.
+        This includes promotion or endorsement of any financial, commercial or non-governmental agency.
+        Similarly, we do not allow attempts to defame or defraud any financial, commercial or non-governmental agency. \n
+
+        3. We do not allow comments that support or encourage illegal activity. \n
+
+         Let’s make this a safe space for everyone! :-D
+        """
+    )
+
+    return INTRO
+
+
+def intro(update, context):
+    user = update.message.from_user
+    logger.info("User %s says: %s", user.first_name, update.message.text)
+
+    update.message.reply_text('Great! Your name please:')
+
     return NAME
 
 
@@ -114,25 +124,10 @@ def age(update, context):
     #store user's age in dict (accessed through context.user_data)
     context.user_data['age'] = update.message.text
 
-    update.message.reply_text('OK ready')
+    update.message.reply_text('Okay you want talk to who:')
 
     return ConversationHandler.END
 
-
-
-def cancel(update, context):
-    user = update.message.from_user
-    logger.info("User %s canceled the conversation.", user.first_name)
-    update.message.reply_text('Bye!',
-                              reply_markup=ReplyKeyboardRemove())
-
-    return ConversationHandler.END
-
-
-
-"""
-functions below are just to check that data storage is working
-"""
 
 def getmyinfo(update, context):
     """Usage: /getmyinfo uuid"""
@@ -148,10 +143,14 @@ def getmyinfo(update, context):
         update.message.reply_text('Not found')
 
 
-def contact(update, context):
-    #might be useful for the last step of the bot
-    contact_keyboard = telegram.KeyboardButton(text="send_contact", request_contact=True)
-    reply_markup = ReplyKeyboardMarkup(contact_keyboard, one_time_keyboard=True)
+
+def cancel(update, context):
+    user = update.message.from_user
+    logger.info("User %s canceled the conversation.", user.first_name)
+    update.message.reply_text('Bye!',
+                              reply_markup=ReplyKeyboardRemove())
+
+    return ConversationHandler.END
 
 
 
@@ -164,7 +163,8 @@ def main():
         entry_points=[CommandHandler('start', start)],
 
         states={
-            AGREE: [MessageHandler(Filters.all, agree)],
+            RULES: [MessageHandler(Filters.regex('^password$'), rules)],
+            INTRO: [MessageHandler(Filters.text, intro)],
             NAME: [MessageHandler(Filters.text, name)],
             GENDER: [MessageHandler(Filters.regex('^(Boy|Girl|Other)$'), gender)],
             AGE: [MessageHandler(Filters.text, age)]
