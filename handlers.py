@@ -19,7 +19,8 @@ some_fun(update, context) is the standard callback signature for the context bas
 logger = logging.getLogger(__name__)
 
 #initialize dict keys
-RULES, INTRO, NAME, GENDER, AGE = range(5)
+RULES, INTRO, NAME, GENDER, BIO, AGE = range(6)
+
 
 def start(update, context):
 
@@ -27,7 +28,8 @@ def start(update, context):
     update.message.reply_text(
     "Welcome to Better To(gather)'s party-matching bot! "
     "We'll match you with other attendees with similar hobbies or interests. Exciting hor? \n"
-    "You shall not pass...without a password! Please enter:"
+
+    "\nYou shall not pass...without a password! Please enter:"
     )
 
     #changes state of conv_handler. should make this function a bit more flexible
@@ -44,7 +46,6 @@ def get_user_details(user):
         create_user_document(user_id, username)
 
 
-
 def rules(update, context):
     user = update.message.from_user
     logger.info("User %s 's password: %s", user.first_name, update.message.text)
@@ -56,19 +57,19 @@ def rules(update, context):
     "OK very nice. Hello! "
     "This is an open chat, but we are also a “family-friendly” page, so please keep comments and wall posts clean.\n"
 
-    "We want you to tell us what’s on your mind and provide a platform for likeminded individuals to connect through their interests, "
+    "\nWe want you to tell us what’s on your mind and provide a platform for likeminded individuals to connect through their interests, "
     "but please note that content falling into any of the categories below will be removed: \n"
 
-    "1. We do not allow graphic, obscene, explicit or racial comments or submissions "
+    "\n1. We do not allow graphic, obscene, explicit or racial comments or submissions "
     "nor do we allow comments that are abusive, hateful or intended to defame anyone or any organization. \n"
 
-    "2. We do not allow third-party solicitations or advertisements. "
+    "\n2. We do not allow third-party solicitations or advertisements. "
     "This includes promotion or endorsement of any financial, commercial or non-governmental agency. "
     "Similarly, we do not allow attempts to defame or defraud any financial, commercial or non-governmental agency. \n"
 
-    "3. We do not allow comments that support or encourage illegal activity. \n"
+    "\n3. We do not allow comments that support or encourage illegal activity. \n"
 
-    "Let’s make this a safe space for everyone! :-D",
+    "\nLet’s make this a safe space for everyone! :-D",
     reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True, resize_keyboard=True)
     )
 
@@ -92,7 +93,7 @@ def name(update, context):
     context.user_data['name'] = update.message.text
 
     #define next state for conversation
-    reply_keyboard = [['Boy', 'Girl', 'Other']]
+    reply_keyboard = [['He/him', 'She/her', 'They/them']]
 
     update.message.reply_text(
         'Ah boy, ah girl, others?',
@@ -114,8 +115,8 @@ def gender(update, context):
     update.message.reply_text('You how old?',
                               reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True, resize_keyboard=True))
 
-    return AGE
 
+    return AGE
 
 
 def age(update, context):
@@ -125,24 +126,20 @@ def age(update, context):
     #store user's age in dict (accessed through context.user_data)
     context.user_data['age'] = update.message.text
 
-    update.message.reply_text('Okay you want talk to who:')
+    update.message.reply_text('Almost done soompah! Tell us something interesting about yourself?')
+
+    return BIO
+
+
+def bio(update, context):
+    user = update.message.from_user
+    logger.info("Bio of %s: %s", user.first_name, update.message.text)
+
+    #store user's age in dict (accessed through context.user_data)
+    context.user_data['bio'] = update.message.text
+    update.message.reply_text('Okay, finding a match for you...')
 
     return ConversationHandler.END
-
-
-
-def getmyinfo(update, context):
-    """Usage: /getmyinfo uuid"""
-    # Seperate ID from command
-    key = update.message.text.partition(' ')[2]
-
-    # Load value
-    try:
-        value = context.user_data[key]
-        update.message.reply_text(value)
-
-    except KeyError:
-        update.message.reply_text('Not found')
 
 
 
@@ -154,16 +151,18 @@ def cancel(update, context):
 
     return ConversationHandler.END
 
+
 def catch_random(update, context):
     user = update.message.from_user
     logger.info("User %s sent an unrecognized command %s", user.first_name, update.message.text)
-    update.message.reply_text("Eh I don't understand leh")
+    update.message.reply_text("I don't understand leh, try another reply")
 
 
 add_start_cmd = CommandHandler('start', start)
 add_rules = MessageHandler(Filters.regex('^password$'), rules)
 add_intro = MessageHandler(Filters.text, intro)
 add_name = MessageHandler(Filters.text, name)
-add_gender = MessageHandler(Filters.regex('^(Boy|Girl|Other)$'), gender)
+add_gender = MessageHandler(Filters.regex('^(He/him|She/her|They/them)$'), gender)
 add_age = MessageHandler(Filters.text, age)
+add_bio = MessageHandler(Filters.text, bio)
 add_catch_random = MessageHandler(Filters.all, catch_random)

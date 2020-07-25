@@ -1,10 +1,14 @@
 
 #helper script for database-related functions in NDP party bot
+"""
+the database stores information given by guests when they interact with the NDP party chatbot
+"""
+
 import sqlite3
 
 
 class DBHelper:
-    def __init__(self, dbname="todo.sqlite"):
+    def __init__(self, dbname="guests.sqlite"):
         self.dbname = dbname
         self.conn = sqlite3.connect(dbname)
 
