@@ -3,11 +3,11 @@
 Handlers for NDP Better To(gather) chatbot
 """
 import logging
-
+import datetime
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove)
 from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters, ConversationHandler)
-
-
+from config import db
+from database import CoffeeDB
 
 """
 the functions defined below are callback functions passed to Handlers. Arguments for
@@ -27,24 +27,13 @@ def start(update, context):
     #sends starting message and request password
     update.message.reply_text(
     "Welcome to Better To(gather)'s party-matching bot! "
-    "We'll match you with other attendees with similar hobbies or interests. Exciting hor? \n"
+    "We'll match you with a random cool attendee. Exciting hor? \n"
 
     "\nYou shall not pass...without a password! Please enter:"
     )
 
     #changes state of conv_handler. should make this function a bit more flexible
     return RULES
-
-
-def get_user_details(user):
-    """Gets user details from User object"""
-    user_id = user.id
-    username = user.full_name
-    logger.info(f"Got user details: {user_id} {username}")
-
-    if not get_user_document(user_id):
-        create_user_document(user_id, username)
-
 
 def rules(update, context):
     user = update.message.from_user
@@ -130,6 +119,45 @@ def age(update, context):
 
     return BIO
 
+def insertNewReq(update, context, matched):
+    """
+    Create new row in users table when a new request is made.
+    """
+    user_info = (update.effective_user.id,
+                update.effective_chat.id,
+                datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))),
+                update.effective_user.username,
+                context.user_data['name'],
+                context.user_data['gender'],
+                context.user_data['age'],
+                context.user_data['bio'],
+                matched)
+    db.c.execute('INSERT INTO users VALUES (?,?,?,?,?,?,?,?,?)',user_info)
+    db.conn.commit()
+
+def isMatchAvailable():
+    """
+    Check if a match is available
+    """
+    res = db.c.execute("SELECT username FROM users WHERE matched=0").fetchall()
+    return len(res) > 0
+
+def retrieveMatchRow():
+    """
+    Retrieves first available user to be matched
+    """
+    #retrieve user_id of match
+    match = db.c.execute("SELECT * FROM users WHERE matched=0").fetchone()
+    matched_userID = match[CoffeeDB.col['user_id']]
+
+    #update db records of matched party
+    db.c.execute(f'''
+                UPDATE users
+                SET matched = 1
+                WHERE user_id = {matched_userID}
+                ''')
+    db.conn.commit()
+    return match
 
 def bio(update, context):
     user = update.message.from_user
@@ -139,9 +167,44 @@ def bio(update, context):
     context.user_data['bio'] = update.message.text
     update.message.reply_text('Okay, finding a match for you...')
 
+    #check for match
+    #if match unavailable, proceed to end conversation; if available, notify both parties
+    if isMatchAvailable():
+        match = retrieveMatchRow()
+        match_chatid = match[CoffeeDB.col['chat_id']]
+        match_username =  match[CoffeeDB.col['username']]
+        match_name = match[CoffeeDB.col['firstname']]
+        match_gender = match[CoffeeDB.col['gender']]
+        match_agegroup = match[CoffeeDB.col['agegroup']]
+        match_bio = match[CoffeeDB.col['bio']]
+
+        #send message to curr user
+        update.message.reply_text(f'''
+                                We've found a match - meet @{match_username}!
+                                \n\n Name: {match_name}
+                                \n Preferred pronouns: {match_gender}
+                                \n Age group: {match_agegroup}
+                                \n Bio: {match_bio}
+                                \n\n Happy chatting!''')
+
+        #send message to match
+        message = (f'''
+                    We've found a match - meet @{user.username}!
+                    \n\n Name: {context.user_data['name']}
+                    \n Preferred pronouns: {context.user_data['gender']}
+                    \n Age group: {context.user_data['age']}
+                    \n Bio: {context.user_data['bio']}
+                    \n\n Happy chatting!''')
+        context.bot.send_message(match_chatid, message)
+
+        matched = 1 #current User has been matched
+
+    else:
+        update.message.reply_text('Waiting for match...')
+        matched = 0
+
+    insertNewReq(update,context,matched)
     return ConversationHandler.END
-
-
 
 def cancel(update, context):
     user = update.message.from_user
@@ -150,7 +213,6 @@ def cancel(update, context):
                               reply_markup=ReplyKeyboardRemove())
 
     return ConversationHandler.END
-
 
 def catch_random(update, context):
     user = update.message.from_user
@@ -166,3 +228,7 @@ add_gender = MessageHandler(Filters.regex('^(He/him|She/her|They/them)$'), gende
 add_age = MessageHandler(Filters.text, age)
 add_bio = MessageHandler(Filters.text, bio)
 add_catch_random = MessageHandler(Filters.all, catch_random)
+
+if __name__ == "__main__":
+    print(isMatchAvailable())
+    print(retrieveMatchRow())
