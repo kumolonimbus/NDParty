@@ -21,19 +21,61 @@ logger = logging.getLogger(__name__)
 #initialize dict keys
 RULES, INTRO, NAME, GENDER, BIO, AGE = range(6)
 
+def isUsernameAvailable(update):
+    """
+    Check if user has set a username
+    """
+    return update.effective_user.username != None
+
+def matchedPreviously(update, context):
+    """
+    Check if user has obtained a match previously
+    """
+    match = db.c.execute(f'SELECT * FROM users WHERE chat_id={update.effective_chat.id}').fetchone()
+    return match!=None
 
 def start(update, context):
 
-    #sends starting message and request password
-    update.message.reply_text(
-    "Welcome to Better To(gather)'s party-matching bot! "
-    "We'll match you with a random cool attendee. Exciting hor? \n"
+    if matchedPreviously(update, context):
 
-    "\nYou shall not pass...without a password! Please enter:"
-    )
+        #check if user has obtained a match before trying again
+        match = db.c.execute(f'SELECT * FROM users WHERE chat_id={update.effective_chat.id}').fetchone()
+        matched = match[CoffeeDB.col['matched']]
+        context.user_data['name'] = match[CoffeeDB.col['firstname']]
+        context.user_data['gender'] = match[CoffeeDB.col['gender']]
+        context.user_data['age'] = match[CoffeeDB.col['agegroup']]
+        context.user_data['bio'] = match[CoffeeDB.col['bio']]
 
-    #changes state of conv_handler. should make this function a bit more flexible
-    return RULES
+        if matched==1:
+        #if user has gotten a match before, jump straight to bio section
+            update.message.reply_text(
+            "Welcome back to Better To(gather)'s party-matching bot! "
+            "Tell us another interesting thing about yourself?")
+
+            return BIO
+
+        else:
+            update.message.reply_text('Still waiting for match...')
+            return ConversationHandler.END
+
+    else:
+    #if user is new, sends starting message and request password
+    #prompts user to set a username and ends conversation if username is unavailable
+        if isUsernameAvailable(update):
+            update.message.reply_text(
+            "Welcome to Better To(gather)'s party-matching bot! "
+            "We'll match you with a random cool attendee. Exciting hor? \n"
+
+            "\nYou shall not pass...without a password! Please enter:"
+            )
+
+            #changes state of conv_handler. should make this function a bit more flexible
+            return RULES
+
+        else:
+            update.message.reply_text('Oops! Must have username then can continue. Set username first then try again!')
+            return ConversationHandler.END
+
 
 def rules(update, context):
     user = update.message.from_user
@@ -185,25 +227,40 @@ def bio(update, context):
                                 \n Preferred pronouns: {match_gender}
                                 \n Age group: {match_agegroup}
                                 \n Bio: {match_bio}
-                                \n\n Happy chatting!''')
+                                \n\n Go ahead and drop {match_name} a text to say hello :-) Happy chatting and enjoy the party!
+                                \n Feeling a bit paiseh to talk to strangers? Come come we tell you some jokes. ''')
 
-        #send message to match
+
         message = (f'''
                     We've found a match - meet @{user.username}!
                     \n\n Name: {context.user_data['name']}
                     \n Preferred pronouns: {context.user_data['gender']}
                     \n Age group: {context.user_data['age']}
                     \n Bio: {context.user_data['bio']}
-                    \n\n Happy chatting!''')
-        context.bot.send_message(match_chatid, message)
+                    \n\n Go ahead and drop {context.user_data['name']} a text to say hello :-) Happy chatting and enjoy the party!
+                    \n Feeling a bit paiseh to talk to strangers? Come come we tell you some jokes. ''')
 
+
+        context.bot.send_message(match_chatid, message)
         matched = 1 #current User has been matched
+        logger.info(f"User @{match_username} has been matched with user @{user.username}")
 
     else:
         update.message.reply_text('Waiting for match...')
         matched = 0
 
-    insertNewReq(update,context,matched)
+    if db.c.execute(f'SELECT * FROM users WHERE chat_id={update.effective_chat.id}').fetchone() == None:
+        insertNewReq(update,context,matched)
+
+    else:
+        #update db records of matched party
+        db.c.execute(f'''
+                    UPDATE users
+                    SET matched = {matched}
+                    WHERE chat_id = {update.effective_chat.id}
+                    ''')
+        db.conn.commit()
+
     return ConversationHandler.END
 
 def cancel(update, context):
@@ -224,7 +281,7 @@ add_start_cmd = CommandHandler('start', start)
 add_rules = MessageHandler(Filters.regex('^password$'), rules)
 add_intro = MessageHandler(Filters.text, intro)
 add_name = MessageHandler(Filters.text, name)
-add_gender = MessageHandler(Filters.regex('^(He/him|She/her|They/them)$'), gender)
+add_gender = MessageHandler(Filters.text, gender)
 add_age = MessageHandler(Filters.text, age)
 add_bio = MessageHandler(Filters.text, bio)
 add_catch_random = MessageHandler(Filters.all, catch_random)

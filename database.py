@@ -17,6 +17,7 @@ class CoffeeDB():
     def setup(self):
         '''declares database schema'''
 
+        #users table
         self.c.execute('''
                 CREATE TABLE IF NOT EXISTS
                 users
@@ -29,6 +30,18 @@ class CoffeeDB():
                 agegroup VARCHAR(10),
                 bio VARCHAR(300),
                 matched INT DEFAULT 0
+                )
+            ''')
+        self.conn.commit()
+
+        #matches table
+        self.c.execute('''
+                CREATE TABLE IF NOT EXISTS
+                matches
+                (user_id INT NOT NULL,
+                matcheduser_id INT NOT NULL,
+                datetime DATETIME,
+                PRIMARY KEY (user_id, matcheduser_id)
                 )
             ''')
         self.conn.commit()
