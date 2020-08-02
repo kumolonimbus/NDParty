@@ -86,21 +86,18 @@ def rules(update, context):
 
     update.message.reply_text(
     "OK very nice. Hello! "
-    "This is an open chat, but we are also a “family-friendly” page, so please keep comments and wall posts clean.\n"
+    "This is an open chat, and  a platform for like-minded individuals to connect and forge friendships. ""
+    Please help us to build a safe space, by not posting:\n"
 
-    "\nWe want you to tell us what’s on your mind and provide a platform for likeminded individuals to connect through their interests, "
-    "but please note that content falling into any of the categories below will be removed: \n"
+    "\n1. Graphic, obscene, explicit or racially/religiously offensive content. \n"
 
-    "\n1. We do not allow graphic, obscene, explicit or racial comments or submissions "
-    "nor do we allow comments that are abusive, hateful or intended to defame anyone or any organization. \n"
+    "\n2. Anything abusive, hateful or intended to defame or defraud anyone or any organization. \n"
 
-    "\n2. We do not allow third-party solicitations or advertisements. "
-    "This includes promotion or endorsement of any financial, commercial or non-governmental agency. "
-    "Similarly, we do not allow attempts to defame or defraud any financial, commercial or non-governmental agency. \n"
+    "\n3. Third-party solicitations or advertisements. This includes promotion or endorsement of any financial, "
+    "commercial or non-governmental agency. Comments that support or encourage illegal activity. \n"
 
-    "\n3. We do not allow comments that support or encourage illegal activity. \n"
-
-    "\nLet’s make this a safe space for everyone! :-D",
+    "\nThank you for your support! \n"
+    "If you encounter an abusive individual, drop us a FB message at https://www.facebook.com/Grounduppartysg/. \n",
     reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True, resize_keyboard=True)
     )
 
@@ -230,7 +227,7 @@ def bio(update, context):
                                 \n\n Go ahead and drop {match_name} a text to say hello :-) Happy chatting and enjoy the party!
                                 \n Feeling a bit paiseh to talk to strangers? Come come we tell you some jokes. ''')
 
-
+        #send message to match
         message = (f'''
                     We've found a match - meet @{user.username}!
                     \n\n Name: {context.user_data['name']}
@@ -239,7 +236,6 @@ def bio(update, context):
                     \n Bio: {context.user_data['bio']}
                     \n\n Go ahead and drop {context.user_data['name']} a text to say hello :-) Happy chatting and enjoy the party!
                     \n Feeling a bit paiseh to talk to strangers? Come come we tell you some jokes. ''')
-
 
         context.bot.send_message(match_chatid, message)
         matched = 1 #current User has been matched
