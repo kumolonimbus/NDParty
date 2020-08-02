@@ -38,10 +38,9 @@ class CoffeeDB():
         self.c.execute('''
                 CREATE TABLE IF NOT EXISTS
                 matches
-                (user_id INT NOT NULL,
-                matcheduser_id INT NOT NULL,
-                datetime DATETIME,
-                PRIMARY KEY (user_id, matcheduser_id)
+                (user1_id INT NOT NULL,
+                user2_id INT NOT NULL,
+                datetime DATETIME
                 )
             ''')
         self.conn.commit()
