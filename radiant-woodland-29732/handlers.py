@@ -140,7 +140,8 @@ def rules(update, context):
     "commercial or non-governmental agency. Comments that support or encourage illegal activity. \n"
 
     "\nThank you for your support! \n"
-    "If you encounter an abusive individual, drop us a FB message at https://www.facebook.com/Grounduppartysg/. \n",
+    "If you encounter an abusive individual, drop us a FB message at https://www.facebook.com/Grounduppartysg/. \n"
+    "\nNote that you can only match with a maximum of 5 guests each day. Type anything to continue!",
     reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True, resize_keyboard=True)
     )
 
@@ -313,20 +314,20 @@ def bio(update, context):
             #send message to curr user
             update.message.reply_text(f'''
                                     We've found a match - meet @{match_username}!
-                                    \n\n Name: {match_name}
-                                    \n Preferred pronouns: {match_gender}
-                                    \n Age group: {match_agegroup}
-                                    \n Bio: {match_bio}
-                                    \n\n Go ahead and drop {match_name} a text to say hello :-) Happy chatting and enjoy the party!''')
+                                    \nName: {match_name}
+                                    \nPreferred pronouns: {match_gender}
+                                    \nAge group: {match_agegroup}
+                                    \nBio: {match_bio}
+                                    \nGo ahead and drop {match_name} a text by tapping on @{match_username} to say hello :-) Happy chatting and enjoy the party!''')
 
             #send message to match
             message = (f'''
                         We've found a match - meet @{user.username}!
-                        \n\n Name: {context.user_data['name']}
-                        \n Preferred pronouns: {context.user_data['gender']}
-                        \n Age group: {context.user_data['age']}
-                        \n Bio: {context.user_data['bio']}
-                        \n\nGo ahead and drop {context.user_data['name']} a text to say hello :-) Happy chatting and enjoy the party!''')
+                        \nName: {context.user_data['name']}
+                        \nPreferred pronouns: {context.user_data['gender']}
+                        \nAge group: {context.user_data['age']}
+                        \nBio: {context.user_data['bio']}
+                        \nGo ahead and drop {context.user_data['name']} a text by tapping on @{user.username} to say hello :-) Happy chatting and enjoy the party!''')
 
             context.bot.send_message(match_chatid, message)
             matched = 1 #current User has been matched
